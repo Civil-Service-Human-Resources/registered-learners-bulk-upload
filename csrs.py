@@ -57,7 +57,12 @@ def count_users():
 def get_user_details(page: int):
     offset = (page - 1) * PAGE_SIZE
     sql = f"""
-        select i.uid, i.email, i.active, cs.full_name, cs.organisational_unit_id, ou.name, cs.grade_id, g.name, cs.profession_id, p.name, max(inv.invited_at) as 'created_timestamp'
+        select i.uid, i.email, i.active, cs.full_name, cs.organisational_unit_id, ou.name, cs.grade_id,
+        g.name, cs.profession_id, p.name,
+        case
+            when MAX(inv.accepted_at) is null then max(inv.invited_at)
+            else LEAST(MAX(inv.accepted_at), max(inv.invited_at))
+        end as 'created_timestamp'
         from csrs.civil_servant cs 
         join csrs.`identity` csi on cs.identity_id = csi.id
         join `identity`.`identity` i on csi.uid = i.uid
