@@ -26,17 +26,28 @@ class User:
 
 
 def get_all_users():
+    users = []
     count = count_users()
     logger.info(f"Found {count} total registered users")
     pages = math.ceil(count / PAGE_SIZE)
-    logger.info(f"Found {pages} pages ({count} / {PAGE_SIZE})")
+    logger.info(f"Found {pages} pages (total: {count} / max page size: {PAGE_SIZE})")
     for page in range(pages):
+        page = page + 1
         logger.info(f"Processing page {page}")
-        get_user_details(page + 1)
+        users.extend(get_user_details(page))
+    return users
 
 
 def count_users():
-    sql = "select count(*) from csrs.civil_servants"
+    sql = """
+          select count(*)
+          from csrs.civil_servant cs
+                   join csrs.`identity` csi on cs.identity_id = csi.id
+                   join `identity`.`identity` i on csi.uid = i.uid
+                   join `identity`.invite inv on inv.for_email = i.email
+                   join csrs.grade g on cs.grade_id = g.id
+                   join csrs.profession p on cs.profession_id = p.id
+          """
     conn = get_mysql_connection()
     with conn.cursor() as cursor:
         cursor.execute(sql)
@@ -81,6 +92,7 @@ def get_user_details(page: int):
     conn = get_mysql_connection()
     with conn.cursor() as cursor:
         cursor.execute(sql)
-        return [User(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[10])
-                for row in
-                cursor.fetchall()]
+        return [
+            User(row[0], row[1], bool(row[2]), row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[10])
+            for row in
+            cursor.fetchall()]

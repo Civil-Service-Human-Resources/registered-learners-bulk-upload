@@ -6,9 +6,9 @@ import psycopg2
 
 os.environ['TZ'] = 'UTC'
 
-PAGE_SIZE = os.getenv('PAGE_SIZE', 25000)
-
 dotenv.load_dotenv()
+
+PAGE_SIZE = int(os.getenv('PAGE_SIZE', 25000))
 
 # DB
 

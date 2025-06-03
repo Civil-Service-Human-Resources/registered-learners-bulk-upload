@@ -11,7 +11,7 @@ def delete_registered_learners():
     conn = get_pg_connection()
     sql = "delete from registered_learners"
     with conn.cursor() as cursor:
-        cursor.executemany(sql)
+        cursor.execute(sql)
     conn.commit()
 
 
@@ -35,7 +35,7 @@ def insert_registered_learners(users: List[User]):
             user.updated_timestamp,
         ) for user in batch)
         sql = f"""
-              INSERT IGNORE INTO registered_learners (uid, email, active, full_name, organisational_unit_id, formatted_org_name, grade_id, grade_name, profession_id, profession_name, created_timestamp, updated_timestamp)
+              INSERT INTO registered_learners (uid, email, active, full_name, organisation_id, organisation_name, grade_id, grade_name, profession_id, profession_name, created_timestamp, updated_timestamp)
               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
               """
         with conn.cursor() as cursor:
