@@ -46,41 +46,41 @@ def count_users():
 def get_user_details(page: int):
     offset = (page - 1) * PAGE_SIZE
     sql = f"""
-        select i.uid, i.email, i.active, cs.full_name, cs.organisational_unit_id, ou.name, cs.grade_id, g.name,
-        cs.profession_id, p.name, min(inv.accepted_at) as 'created_timestamp', min(inv.accepted_at) as 'updated_timestamp'
+        select i.uid, i.email, i.active, cs.full_name, cs.organisational_unit_id, ou.name, cs.grade_id, g.name, cs.profession_id, p.name, max(inv.invited_at) as 'created_timestamp'
         from csrs.civil_servant cs 
         join csrs.`identity` csi on cs.identity_id = csi.id
         join `identity`.`identity` i on csi.uid = i.uid
         join `identity`.invite inv on inv.for_email = i.email
         join csrs.grade g on cs.grade_id = g.id
         join csrs.profession p on cs.profession_id = p.id
-        join (select ou.id, organisational_unit.name
-           from csrs.organisational_unit ou
-                    left outer join (select ou.id as _id,
-                                            concat(
-                                                    case
-                                                        when grandparent.name is null then ''
-                                                        else concat(grandparent.name, ' | ')
-                                                        end
-                                                ,
-                                                    case
-                                                        when parent.name is null then ''
-                                                        else concat(parent.name, ' | ')
-                                                        end
-                                                ,
-                                                    ou.name) as 'name'
-                                     from csrs.organisational_unit ou
-                                              left outer join csrs.organisational_unit parent on ou.parent_id = parent.id
-                                              left outer join csrs.organisational_unit grandparent
-                                                              on parent.parent_id = grandparent.id) as organisational_unit
-                                    on organisational_unit._id = ou.id
-        ) as ou on cs.organisational_unit_id = ou.id
+        join (
+            select ou.id, organisational_unit.name
+            from csrs.organisational_unit ou
+            left outer join (
+                select ou.id as _id,
+                concat(
+                        case
+                            when grandparent.name is null then ''
+                            else concat(grandparent.name, ' | ')
+                        end
+                    ,
+                        case
+                            when parent.name is null then ''
+                            else concat(parent.name, ' | ')
+                        end
+                    ,
+                        ou.name) as 'name'
+                 from csrs.organisational_unit ou
+                  left outer join csrs.organisational_unit parent on ou.parent_id = parent.id
+                  left outer join csrs.organisational_unit grandparent on parent.parent_id = grandparent.id
+                  ) as organisational_unit on organisational_unit._id = ou.id
+            ) as ou on cs.organisational_unit_id = ou.id
         group by i.uid
         limit {PAGE_SIZE} offset {offset};
     """
     conn = get_mysql_connection()
     with conn.cursor() as cursor:
         cursor.execute(sql)
-        return [User(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11])
+        return [User(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[10])
                 for row in
                 cursor.fetchall()]
