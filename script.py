@@ -12,7 +12,7 @@ def run(execute=False):
     users = get_all_users()
     logger.info(f"Found {len(users)} users")
     if execute:
-        logger.info(f"Creating registered learner DB rows.")
+        logger.info("Creating registered learner DB rows.")
         insert_registered_learners(users)
     else:
         logger.info("execute flag not passed. Not creating registered learner DB rows.")
