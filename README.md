@@ -6,6 +6,7 @@ This script will extract users from the csrs/identity databases and attempt to i
 ## Setup
 
 As always, first run `pip install -r requirements.txt`
+- On Macbook `pip install -r requirements-macbook.txt`
 
 Set the following properties in a `.env` file (or as system env vars):
 
@@ -31,10 +32,19 @@ The script uses the following arguments:
 ### Example usage
 
 To report on migration:
+`python script.py --action report`
+
+- On Macbook
 `python3 script.py report`
 
 To execute migration:
+`python script.py --action execute`
+
+- On Macbook
 `python3 script.py execute`
 
 To teardown the registered_learners table:
+`python script.py --action teardown`
+
+- On Macbook
 `python3 script.py teardown`
