@@ -60,25 +60,21 @@ def count_users():
                   ou.abbreviation,
                   oh.level_order + 1
               FROM org_hierarchy oh
-                    JOIN csrs.organisational_unit ou
+                   JOIN csrs.organisational_unit ou
                         ON oh.parent_id = ou.id
               WHERE oh.parent_id IS NOT NULL
           ),
-          main_data AS (
+          main_query AS (
              SELECT
-                 i.uid,
-                 CASE
-                     WHEN inv.max_accepted IS NULL THEN inv.max_invited
-                     ELSE LEAST(inv.max_accepted, inv.max_invited)
-                     END AS created_timestamp
+                 i.uid
              FROM csrs.civil_servant cs
-                      LEFT JOIN csrs.identity ci          ON cs.identity_id = ci.id
-                      LEFT JOIN identity.identity i       ON ci.uid = i.uid
+                      LEFT JOIN csrs.identity ci    ON cs.identity_id = ci.id
+                      LEFT JOIN identity.identity i ON ci.uid = i.uid
                       LEFT JOIN (
                  SELECT
                      for_email,
                      MAX(accepted_at) AS max_accepted,
-                     MAX(invited_at) AS max_invited
+                     MAX(invited_at)  AS max_invited
                  FROM identity.invite
                  GROUP BY for_email
              ) inv ON inv.for_email = i.email
@@ -87,10 +83,9 @@ def count_users():
                  cs.full_name IS NOT NULL
                AND i.email IS NOT NULL
              GROUP BY i.uid
-             HAVING created_timestamp IS NOT NULL
           )
-          SELECT COUNT(*) AS total_records
-          FROM main_data
+          SELECT COUNT(*) AS total_count
+          FROM main_query
           """
     conn = get_mysql_connection()
     with conn.cursor() as cursor:
@@ -147,7 +142,10 @@ def get_user_details(page: int):
             cs.profession_id,
             p.name AS profession_name,
             CASE
-                WHEN max_accepted IS NULL THEN max_invited
+                WHEN max_invited IS NULL AND max_accepted IS NULL
+                    THEN NOW()
+                WHEN max_accepted IS NULL
+                    THEN max_invited
                 ELSE LEAST(max_accepted, max_invited)
             END AS created_timestamp
         FROM csrs.civil_servant cs
@@ -169,8 +167,6 @@ def get_user_details(page: int):
             AND i.email IS NOT NULL
         GROUP BY
             i.uid
-        HAVING
-            created_timestamp IS NOT NULL
         ORDER BY
             created_timestamp ASC
         limit {PAGE_SIZE} offset {offset};
