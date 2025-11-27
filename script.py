@@ -8,7 +8,6 @@ logger = get_logger("script")
 
 
 def run(execute=False):
-    teardown()
     logger.info("Fetching all users")
     users = get_all_users()
     logger.info(f"Found {len(users)} users. Creating registered learner DB rows.")

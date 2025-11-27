@@ -31,10 +31,10 @@ The script uses the following arguments:
 ### Example usage
 
 To report on migration:
-`python script.py --action report`
+`python3 script.py report`
 
 To execute migration:
-`python script.py --action execute`
+`python3 script.py execute`
 
 To teardown the registered_learners table:
-`python script.py --action teardown`
+`python3 script.py teardown`
