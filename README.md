@@ -27,11 +27,11 @@ Optionally set the following properties:
 
 The script uses the following arguments:
 
-| Argument     | Description                                               | Action                          | Default  | Example Usage |
-|:-------------|:----------------------------------------------------------|:--------------------------------|:---------|:--------------|
-| **`action`** | Defines the operation to perform with the specified data. | `report`, `teardown`, `execute` | `report` | `execute`     |                           
+| Argument                        | Description                                               |
+|:--------------------------------|:----------------------------------------------------------|
+| `report`, `teardown`, `execute` | Defines the operation to perform with the specified data. |
 
-### Example usage
+### Usage
 
 To report on migration:
 `python script.py report`
