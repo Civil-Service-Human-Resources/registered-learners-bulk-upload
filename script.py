@@ -6,7 +6,6 @@ from registered_learners import insert_registered_learners, delete_registered_le
 
 logger = get_logger("script")
 
-
 def run(execute=False):
     logger.info("Fetching all users")
     users = get_all_users()
@@ -16,7 +15,6 @@ def run(execute=False):
         insert_registered_learners(users)
     else:
         logger.info("execute flag not passed. Not creating registered learner DB rows.")
-
 
 def get_args():
     parser = argparse.ArgumentParser(description="Process")
@@ -30,11 +28,9 @@ def get_args():
 
     return parser.parse_args()
 
-
 def teardown():
     logger.info("Tearing down data")
     delete_registered_learners()
-
 
 if __name__ == "__main__":
     args = get_args()

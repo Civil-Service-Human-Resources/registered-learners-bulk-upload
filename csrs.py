@@ -6,7 +6,6 @@ from log import get_logger
 
 logger = get_logger("csrs")
 
-
 class User:
     def __init__(self, uid: str, email: str, active: bool, full_name: str, organisational_unit_id: int,
                  formatted_org_name: str, grade_id: str, grade_name: str, profession_id: int, profession_name: str,
@@ -24,7 +23,6 @@ class User:
         self.created_timestamp = created_timestamp
         self.updated_timestamp = updated_timestamp
 
-
 def get_all_users():
     users = []
     count = count_users()
@@ -36,7 +34,6 @@ def get_all_users():
         logger.info(f"Processing page {page}")
         users.extend(get_user_details(page))
     return users
-
 
 def count_users():
     sql = """
@@ -91,7 +88,6 @@ def count_users():
     with conn.cursor() as cursor:
         cursor.execute(sql)
         return int(cursor.fetchone()[0])
-
 
 def get_user_details(page: int):
     offset = (page - 1) * PAGE_SIZE
