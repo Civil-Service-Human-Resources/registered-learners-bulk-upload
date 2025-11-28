@@ -5,6 +5,8 @@ This script will extract users from the csrs/identity databases and attempt to i
 
 ## Setup
 
+Requires: python -version 3
+
 As always, first run `pip install -r requirements.txt`
 - On Macbook `pip install -r requirements-macbook.txt`
 
@@ -25,26 +27,17 @@ Optionally set the following properties:
 
 The script uses the following arguments:
 
-| Argument     | Description                                               | Choices                         | Default  | Example Usage      |
-|:-------------|:----------------------------------------------------------|:--------------------------------|:---------|:-------------------|
-| **`action`** | Defines the operation to perform with the specified data. | `report`, `execute`, `teardown` | `report` | `--action execute` |                           
+| Argument     | Description                                               | Action                          | Default  | Example Usage |
+|:-------------|:----------------------------------------------------------|:--------------------------------|:---------|:--------------|
+| **`action`** | Defines the operation to perform with the specified data. | `report`, `teardown`, `execute` | `report` | `execute`     |                           
 
 ### Example usage
 
 To report on migration:
-`python script.py --action report`
-
-- On Macbook
-`python3 script.py report`
-
-To execute migration:
-`python script.py --action execute`
-
-- On Macbook
-`python3 script.py execute`
+`python script.py report`
 
 To teardown the registered_learners table:
-`python script.py --action teardown`
+`python script.py teardown`
 
-- On Macbook
-`python3 script.py teardown`
+To execute migration:
+`python script.py execute`
