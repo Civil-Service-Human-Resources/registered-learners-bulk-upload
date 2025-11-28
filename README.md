@@ -5,10 +5,11 @@ This script will extract users from the csrs/identity databases and attempt to i
 
 ## Setup
 
-Requires: python -version 3
+Requires: python (version 3)
 
-As always, first run `pip install -r requirements.txt`
-- On Macbook `pip install -r requirements-macbook.txt`
+Install the required dependencies:
+- run `pip install -r requirements.txt`
+- or for Macbook run `pip install -r requirements-macbook.txt`
 
 Set the following properties in a `.env` file (or as system env vars):
 
@@ -18,10 +19,7 @@ Set the following properties in a `.env` file (or as system env vars):
 - PG_HOST
 - PG_PASSWORD
 - PG_USER
-
-Optionally set the following properties:
-
-- `PAGE_SIZE` (page size to use when fetching users)
+- PAGE_SIZE (page size to use when fetching users)
 
 ## Run
 
