@@ -1,7 +1,7 @@
 # registered-learners-bulk-upload
 
-This script will extract users from the csrs/identity databases and attempt to insert the records into the new
-`registered_learners` database.
+This script will read users information from the csrs and identity schemas in MySql DB and bulk insert the records into
+the `registered_learners` table of the reporting schema in Postgres DB.
 
 ## Setup
 
