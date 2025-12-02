@@ -143,7 +143,7 @@ def get_user_details(page: int):
             p.name AS profession_name,
             CASE
                 WHEN max_invited IS NULL AND max_accepted IS NULL
-                    THEN NOW()
+                    THEN '2000-01-01 00:00:00.000'
                 WHEN max_accepted IS NULL
                     THEN max_invited
                 ELSE LEAST(max_accepted, max_invited)
