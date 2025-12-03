@@ -40,47 +40,12 @@ def get_all_users():
 
 def count_users():
     sql = """
-          WITH emailupd AS (
-              SELECT
-                  new_email AS email,
-                  MAX(updated_at)   AS max_updated,
-                  MAX(requested_at) AS max_requested
-              FROM identity.email_update
-              WHERE email_update_status = 'UPDATED'
-              GROUP BY new_email
-          ),
-          inv AS (
-              SELECT
-                  for_email AS email,
-                  MAX(accepted_at) AS max_accepted,
-                  MAX(invited_at)  AS max_invited
-              FROM identity.invite
-              GROUP BY for_email
-           ),
-           result_set AS (
-              SELECT
-                  i.uid,
-                  CASE
-                      WHEN inv.max_invited IS NULL AND inv.max_accepted IS NULL THEN
-                          CASE
-                              WHEN eu.email IS NOT NULL THEN
-                                  CASE
-                                      WHEN eu.max_updated   IS NOT NULL THEN eu.max_updated
-                                      WHEN eu.max_requested IS NOT NULL THEN eu.max_requested
-                                      ELSE '2000-01-01 00:00:00.000'
-                                  END
-                               ELSE '2000-01-01 00:00:00.000'
-                          END
-                       WHEN inv.max_accepted IS NULL THEN inv.max_invited
-                       ELSE LEAST(inv.max_accepted, inv.max_invited)
-                  END AS created_timestamp
-              FROM csrs.civil_servant cs
-              JOIN csrs.identity ci     ON cs.identity_id = ci.id
-              JOIN identity.identity i  ON ci.uid = i.uid
-              LEFT JOIN inv             ON inv.email = i.email
-              LEFT JOIN emailupd eu     ON eu.email = i.email
-              WHERE cs.full_name IS NOT NULL
-              AND i.email IS NOT NULL
+          WITH result_set AS (
+               SELECT DISTINCT i.email
+               FROM identity.identity i
+                        LEFT JOIN csrs.identity ci ON ci.uid = i.uid
+                        LEFT JOIN csrs.civil_servant csrv ON csrv.identity_id = ci.id
+               WHERE csrv.full_name IS NOT NULL
           )
           SELECT COUNT(*) AS total_count
           FROM result_set
