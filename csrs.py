@@ -45,7 +45,7 @@ def count_users():
                FROM identity.identity i
                         LEFT JOIN csrs.identity ci ON ci.uid = i.uid
                         LEFT JOIN csrs.civil_servant csrv ON csrv.identity_id = ci.id
-               WHERE csrv.full_name IS NOT NULL
+               WHERE csrv.full_name IS NOT NULL AND i.email IS NOT NULL
           )
           SELECT COUNT(*) AS total_count
           FROM result_set
