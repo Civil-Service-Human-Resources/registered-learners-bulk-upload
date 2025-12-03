@@ -40,52 +40,50 @@ def get_all_users():
 
 def count_users():
     sql = """
-          WITH RECURSIVE org_hierarchy AS (
+          WITH emailupd AS (
               SELECT
-                  cs.id AS civil_servant_id,
-                  ou.id AS org_id,
-                  ou.parent_id,
-                  ou.name,
-                  ou.abbreviation,
-                  1 AS level_order
-              FROM csrs.civil_servant cs
-                   LEFT JOIN csrs.organisational_unit ou
-                        ON cs.organisational_unit_id = ou.id
-              UNION ALL
-              SELECT
-                  oh.civil_servant_id,
-                  ou.id,
-                  ou.parent_id,
-                  ou.name,
-                  ou.abbreviation,
-                  oh.level_order + 1
-              FROM org_hierarchy oh
-                   JOIN csrs.organisational_unit ou
-                        ON oh.parent_id = ou.id
-              WHERE oh.parent_id IS NOT NULL
+                  new_email AS email,
+                  MAX(updated_at)   AS max_updated,
+                  MAX(requested_at) AS max_requested
+              FROM identity.email_update
+              WHERE email_update_status = 'UPDATED'
+              GROUP BY new_email
           ),
-          main_query AS (
-             SELECT
-                 i.uid
-             FROM csrs.civil_servant cs
-                      LEFT JOIN csrs.identity ci    ON cs.identity_id = ci.id
-                      LEFT JOIN identity.identity i ON ci.uid = i.uid
-                      LEFT JOIN (
-                 SELECT
-                     for_email,
-                     MAX(accepted_at) AS max_accepted,
-                     MAX(invited_at)  AS max_invited
-                 FROM identity.invite
-                 GROUP BY for_email
-             ) inv ON inv.for_email = i.email
-                      LEFT JOIN org_hierarchy oh ON oh.civil_servant_id = cs.id
-             WHERE
-                 cs.full_name IS NOT NULL
-               AND i.email IS NOT NULL
-             GROUP BY i.uid
+          inv AS (
+              SELECT
+                  for_email AS email,
+                  MAX(accepted_at) AS max_accepted,
+                  MAX(invited_at)  AS max_invited
+              FROM identity.invite
+              GROUP BY for_email
+           ),
+           result_set AS (
+              SELECT
+                  i.uid,
+                  CASE
+                      WHEN inv.max_invited IS NULL AND inv.max_accepted IS NULL THEN
+                          CASE
+                              WHEN eu.email IS NOT NULL THEN
+                                  CASE
+                                      WHEN eu.max_updated   IS NOT NULL THEN eu.max_updated
+                                      WHEN eu.max_requested IS NOT NULL THEN eu.max_requested
+                                      ELSE '2000-01-01 00:00:00.000'
+                                  END
+                               ELSE '2000-01-01 00:00:00.000'
+                          END
+                       WHEN inv.max_accepted IS NULL THEN inv.max_invited
+                       ELSE LEAST(inv.max_accepted, inv.max_invited)
+                  END AS created_timestamp
+              FROM csrs.civil_servant cs
+              JOIN csrs.identity ci     ON cs.identity_id = ci.id
+              JOIN identity.identity i  ON ci.uid = i.uid
+              LEFT JOIN inv             ON inv.email = i.email
+              LEFT JOIN emailupd eu     ON eu.email = i.email
+              WHERE cs.full_name IS NOT NULL
+              AND i.email IS NOT NULL
           )
           SELECT COUNT(*) AS total_count
-          FROM main_query
+          FROM result_set
           """
     conn = get_mysql_connection()
     with conn.cursor() as cursor:
@@ -96,79 +94,77 @@ def count_users():
 def get_user_details(page: int):
     offset = (page - 1) * PAGE_SIZE
     sql = f"""
-        WITH RECURSIVE org_hierarchy AS (
+            WITH RECURSIVE org_hierarchy AS (
+                SELECT
+                    cs.id AS civil_servant_id,
+                    ou.id AS org_id,
+                    ou.parent_id,
+                    ou.name,
+                    1 AS level_order
+                FROM csrs.civil_servant cs
+                LEFT JOIN csrs.organisational_unit ou ON cs.organisational_unit_id = ou.id
+                UNION ALL
+                SELECT
+                    oh.civil_servant_id,
+                    ou.id,
+                    ou.parent_id,
+                    ou.name,
+                    oh.level_order + 1
+                FROM org_hierarchy oh
+                JOIN csrs.organisational_unit ou ON oh.parent_id = ou.id
+                WHERE oh.parent_id IS NOT NULL
+            ),
+            emailupd AS (
+                SELECT
+                    new_email AS email,
+                    MAX(updated_at)   AS max_updated,
+                    MAX(requested_at) AS max_requested
+                FROM identity.email_update
+                WHERE email_update_status = 'UPDATED'
+                GROUP BY new_email
+            )
             SELECT
-                cs.id AS civil_servant_id,
-                ou.id AS org_id,
-                ou.parent_id,
-                ou.name,
-                ou.abbreviation,
-                1 AS level_order
+                i.uid,
+                i.email,
+                i.active,
+                cs.full_name,
+                cs.organisational_unit_id,
+                GROUP_CONCAT(oh.name ORDER BY oh.level_order DESC SEPARATOR ' | ') AS organisational_unit_name,
+                cs.grade_id,
+                g.name AS grade_name,
+                cs.profession_id,
+                p.name AS profession_name,
+                CASE
+                    WHEN max_invited IS NULL AND max_accepted IS NULL THEN
+                        CASE
+                            WHEN eu.email IS NOT NULL THEN
+                                CASE
+                                    WHEN eu.max_updated IS NOT NULL THEN eu.max_updated
+                                    WHEN eu.max_requested IS NOT NULL THEN eu.max_requested
+                                    ELSE '2000-01-01 00:00:00.000'
+                                END
+                            ELSE '2000-01-01 00:00:00.000'
+                        END
+                    WHEN max_accepted IS NULL THEN max_invited
+                    ELSE LEAST(max_accepted, max_invited)
+                END AS created_timestamp
             FROM csrs.civil_servant cs
-            LEFT JOIN csrs.organisational_unit ou
-                ON cs.organisational_unit_id = ou.id
-            UNION ALL
-            SELECT
-                oh.civil_servant_id,
-                ou.id,
-                ou.parent_id,
-                ou.name,
-                ou.abbreviation,
-                oh.level_order + 1
-            FROM org_hierarchy oh
-            JOIN csrs.organisational_unit ou
-                ON oh.parent_id = ou.id
-            WHERE oh.parent_id IS NOT NULL
-        )
-        SELECT
-            i.uid,
-            i.email,
-            i.active,
-            cs.full_name,
-            cs.organisational_unit_id,
-            GROUP_CONCAT(
-                CONCAT(
-                    oh.name,
-                    IF(oh.abbreviation <> '' AND oh.abbreviation IS NOT NULL,
-                       CONCAT(' (', oh.abbreviation, ')'),
-                       ''
-                    )
-                )
-                ORDER BY oh.level_order DESC
-                SEPARATOR ' | '
-            ) AS organisational_unit_name,
-            cs.grade_id,
-            g.name AS grade_name,
-            cs.profession_id,
-            p.name AS profession_name,
-            CASE
-                WHEN max_invited IS NULL AND max_accepted IS NULL
-                    THEN '2000-01-01 00:00:00.000'
-                WHEN max_accepted IS NULL
-                    THEN max_invited
-                ELSE LEAST(max_accepted, max_invited)
-            END AS created_timestamp
-        FROM csrs.civil_servant cs
-        LEFT JOIN csrs.identity ci          ON cs.identity_id = ci.id
-        LEFT JOIN identity.identity i       ON ci.uid = i.uid
-        LEFT JOIN (
-            SELECT
-                for_email,
-                MAX(accepted_at) AS max_accepted,
-                MAX(invited_at) AS max_invited
-            FROM identity.invite
-            GROUP BY for_email
-        ) inv ON inv.for_email = i.email
-        LEFT JOIN org_hierarchy oh          ON oh.civil_servant_id = cs.id
-        LEFT JOIN csrs.grade g              ON cs.grade_id = g.id
-        LEFT JOIN csrs.profession p         ON cs.profession_id = p.id
-        WHERE
-            cs.full_name IS NOT NULL
-            AND i.email IS NOT NULL
-        GROUP BY
-            i.uid
-        ORDER BY
-            created_timestamp ASC
+            LEFT JOIN csrs.identity ci     ON cs.identity_id = ci.id
+            LEFT JOIN identity.identity i  ON ci.uid = i.uid
+            LEFT JOIN (
+                SELECT for_email,
+                    MAX(accepted_at) AS max_accepted,
+                    MAX(invited_at)  AS max_invited
+                FROM identity.invite
+                GROUP BY for_email
+            ) inv ON inv.for_email = i.email
+            LEFT JOIN emailupd eu          ON eu.email = i.email
+            LEFT JOIN org_hierarchy oh     ON oh.civil_servant_id = cs.id
+            LEFT JOIN csrs.grade g         ON cs.grade_id = g.id
+            LEFT JOIN csrs.profession p    ON cs.profession_id = p.id
+            WHERE cs.full_name IS NOT NULL AND i.email IS NOT NULL
+            GROUP BY i.uid
+            ORDER BY created_timestamp ASC
         limit {PAGE_SIZE} offset {offset};
     """
     conn = get_mysql_connection()
